@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta http-equiv="content-type" content="text/html;charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title></title>
+    <%= require('html-loader!../../template/header.html') %>
+    <style>
+
+    </style>
+</head>
+
+<body>
+    <div id="root" v-cloak>
+        <template>
+            <main class="el-main main">
+                <div id="app" class="processManage">
+                </div>
+            </main>
+        </template>
+    </div>
+
+
+    <%= require('html-loader!../../template/foot.html') %>
+    <script src="../js/go.js"></script>
+
+    <script>
+        axios.defaults.headers['userKey'] = fetchStorage();
+        // 创建图
+        console.log(1)
+    </script>
+</body>
+
+</html>

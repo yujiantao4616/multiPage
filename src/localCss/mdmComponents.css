@@ -1,0 +1,124 @@
+.text-ellipsis {
+    display: inline-block;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow-x: hidden;
+    text-overflow: ellipsis;
+}
+
+/*配置块组件 -- 开始*/
+.mdm-conf-block {
+    font-size: 12px;
+    color: #4A4A4A;
+}
+.mdm-conf-block-header {
+    padding: 8px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.mdm-conf-block-header__title {
+    display: inline-flex;
+    align-items: center;
+    color: #212121;
+}
+.mdm-conf-block-header__title:before {
+    content: "";
+    margin-right: 8px;
+    display: inline-block;
+    width: 3px;
+    height: 16px;
+    background-color: #0C69B3;
+    border-radius: 2px 0 0 2px;
+}
+.mdm-conf-block-body {
+    position: relative;
+}
+.mdm-conf-block-body.is-scrolling:before {
+    position: absolute;
+    content: "";
+    display: block;
+    height: 1px;
+    width: 100%;
+    box-shadow: 0px 1px 4px 0px rgba(0, 0, 0, 0.3);
+}
+.mdm-conf-block-body__inner {
+    padding: 24px 8px;
+    overflow: auto;
+}
+/*配置块组件 -- 结束*/
+
+/*标签展示组件样式 -- 开始*/
+.mdm-tag-display {
+    width: 100%;
+    min-height: 84px;
+    margin-top: 24px;
+    border:1px solid #D9D9D9;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+}
+.mdm-tag-display-title{
+    position: absolute;
+    left: 60px;
+    top: -18px;
+}
+.mdm-tag-display-content{
+    min-width: 800px;
+    min-height: 60px;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    margin-bottom: 6px;
+}
+.mdm-tag-display-content .el-tag{
+    background:rgba(245,245,245,1);
+    border: 1px solid #D9D9D9;
+    color: #0a001f;
+    height: 22px;
+    line-height: 20px;
+    margin-left: 8px;
+    margin-top: 5px;
+    padding: 0 10px;
+}
+/*标签展示组件样式 -- 结束*/
+/*标签选择组件样式 -- 开始*/
+
+/*标签选择组件样式 -- 结束*/
+
+/*数据视图块组件样式 -- 开始*/
+.mdm-view-block {
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    background-color: #fff;
+}
+.mdm-view-block-header {
+    height: 26px;
+    line-height: 26px;
+    font-size: 14px;
+}
+.mdm-view-block-header__title {
+    display: inline-flex;
+    color: #0C69B3;
+    padding: 0 12px;
+    border-left: 8px solid #0C69B3;
+    background-color: rgba(12, 105, 179, 0.22);
+}
+.mdm-view-block-body {
+    flex: 1;
+}
+/*数据视图块组件样式 -- 结束*/
+
+/*编码输入框组件样式 -- 开始*/
+.mdm-code-input .el-form-item__content{
+    display: flex;
+}
+.mdm-code-input .el-input{
+    width: 20%;
+    margin: 0 5px;
+}
+/*编码输入框组件样式 -- 结束*/
