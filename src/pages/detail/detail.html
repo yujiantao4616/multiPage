@@ -4,31 +4,1182 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <meta http-equiv="content-type" content="text/html;charset=utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title></title>
+    <title>宏观经济概览</title>
     <%= require('html-loader!../../template/header.html') %>
     <style>
+        .tools {
+            height: 50px;
+            box-sizing: border-box;
+            border-bottom: 1px solid #d9d9d9;
+            display: flex;
+            padding: 0 26px;
+            font-family: MicrosoftYaHei;
+            font-size: 12px;
+            font-weight: normal;
+            font-stretch: normal;
+            line-height: 20px;
+            letter-spacing: 0px;
+        }
 
+        .tools .el-button {
+            margin-right: 20px;
+            margin: 9px 20px 12px 0;
+            background-color: #d4e3f6;
+            border: none;
+            color: #333333;
+        }
+
+        .mainContent {
+            padding: 9px 14px;
+        }
+
+        .dataRangeLabel {
+            vertical-align: text-top;
+            font-size: 15px;
+            line-height: 20px;
+            color: #4a4a4a;
+        }
+
+        .chartCon {
+            padding-bottom: 28px;
+            border-bottom: 1px solid #e6e6e6;
+            display: flex;
+        }
+
+        .chartCon #chart {
+            flex: 1;
+        }
+
+        .chartCon .el-tabs {
+            width: 340px;
+            margin-left: 30px;
+        }
     </style>
 </head>
 
 <body>
     <div id="root" v-cloak>
         <template>
-            <main class="el-main main">
-                <div id="app" class="processManage">
+            <div class="tools">
+                <el-button size="small" type="primary">提取数据<i class="el-icon-arrow-right el-icon--right"></i>
+                </el-button>
+                <el-button size="small" type="primary">导出数据<i class="el-icon-arrow-right el-icon--right"></i>
+                </el-button>
+                <el-button size="small" type="primary">收藏图表<i class="el-icon-arrow-right el-icon--right"></i>
+                </el-button>
+                <el-button size="small" type="primary">导出图表<i class="el-icon-arrow-right el-icon--right"></i>
+                </el-button>
+                <el-button size="small" type="primary">需求反馈<i class="el-icon-arrow-right el-icon--right"></i>
+                </el-button>
+            </div>
+            <div class="mainContent">
+                <el-row>
+                    <el-col :span="24">
+                        <label class="dataRangeLabel">日期：</label>
+                        <el-date-picker @change="chooseDate" value-format="yyyy-MM-dd" format="yyyy-MM-dd" size="small"
+                            type="daterange" start-placeholder="开始日期" end-placeholder="结束日期" :clearable="false"
+                            placeholder="选择日期" v-model="ruleForm.date" style="width:260px;"
+                            :picker-options="pickerOptions1">
+                        </el-date-picker>
+                    </el-col>
+                </el-row>
+                <div class="chartCon">
+                    <div id="chart" style="width: 99%;height:420px;" v-loading="collectLoading"></div>
+                    <el-tabs v-model="tabsValue" type="card">
+                        <el-tab-pane label="默认指标" name="1">
+                            <el-checkbox-group v-model="defaultData" @change="defaultChange">
+                                <el-checkbox v-for="(item,index) in defaultList" :key="item.key" :label="item.key"
+                                    style="margin-left:15px;margin-top:10px;display:block;">
+                                    {{item.label}}
+                                </el-checkbox>
+                            </el-checkbox-group>
+                        </el-tab-pane>
+                        <el-tab-pane label="相关指标" name="2">
+                            <el-checkbox-group v-model="relatedData" @change="relatedChange">
+                                <el-checkbox v-for="(item,index) in relatedList" :key="item.key" :label="item.label"
+                                    style="margin-left:15px;margin-top:10px;display:block;">
+                                </el-checkbox>
+                            </el-checkbox-group>
+                        </el-tab-pane>
+                    </el-tabs>
                 </div>
-            </main>
+                <el-row style="padding-top: 28px;">
+                    <el-table :data="collectDatas" v-loading="tableLoading" border style="width: 100%">
+                        <el-table-column prop="title" label="指标名称" align="center">
+                            <template slot-scope="scope">
+                                {{scope.row.title}}
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="title" label="最新报告期" align="center">
+                            <template slot-scope="scope">
+                                {{scope.row.title}}
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="title" label="最新值" align="center">
+                            <template slot-scope="scope">
+                                {{scope.row.title}}
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="title" label="同比（%）" align="center">
+                            <template slot-scope="scope">
+                                {{scope.row.title}}
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="title" label="环比（%）" align="center">
+                            <template slot-scope="scope">
+                                {{scope.row.title}}
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </el-row>
+            </div>
+            <el-dialog title="收藏图表" :visible="dialogFormVisible" :close-on-click-modal="false" width="540px"
+                @close='closeDialog'>
+                <el-form ref="dataForm" :rules="collectRules" :model="temp" label-position="left" label-width="110px"
+                    class="dialog-style">
+                    <el-form-item label="文件夹名称" prop="fileName">
+                        <el-select placeholder="请输入名称" v-model="temp.fileName" style="width:300px;">
+
+                        </el-select>
+                        <el-button type="primary" style="margin-left:10px;" @click="showFileNameDialog">新建</el-button>
+                    </el-form-item>
+                    <el-form-item label="报表名" prop="tableName">
+                        <el-select placeholder="请输入名称" v-model="temp.tableName" style="width:300px;">
+
+                        </el-select>
+                        <el-button type="primary" style="margin-left:10px;" @click="showChartNameDialog">新增</el-button>
+                    </el-form-item>
+                </el-form>
+                <div slot="footer" class="dialog-footer">
+                    <el-button @click="dialogFormVisible = false">取消</el-button>
+                    <el-button type="primary" @click="addCollectChart">添加</el-button>
+                </div>
+            </el-dialog>
+
+            <el-dialog title="新增文件夹" :visible="dialogFileFormVisible" :close-on-click-modal="false" width="540px"
+                @close='closeFileDialog'>
+                <el-form ref="dataFileForm" :rules="fileRules" :model="fileTemp" label-position="left"
+                    label-width="110px" class="dialog-style">
+                    <el-form-item label="文件夹名称" prop="fileName">
+                        <el-input placeholder="请输入文件夹名称" v-model="fileTemp.fileName" />
+                    </el-form-item>
+                </el-form>
+                <div slot="footer" class="dialog-footer">
+                    <el-button @click="closeFileDialog">取消</el-button>
+                    <el-button type="primary" @click="addFileNameMethod">确定</el-button>
+                </div>
+            </el-dialog>
+
+            <el-dialog title="新增报表名" :visible="dialogChartFormVisible" :close-on-click-modal="false" width="540px"
+                @close='closeFileDialog'>
+                <el-form ref="dataTableForm" :rules="tableRules" :model="tableTemp" label-position="left"
+                    label-width="110px" class="dialog-style">
+                    <el-form-item label="报表名称" prop="tableName">
+                        <el-input placeholder="请输入报表名称" v-model="tableTemp.tableName" />
+                    </el-form-item>
+                </el-form>
+                <div slot="footer" class="dialog-footer">
+                    <el-button @click="closeFileDialog">取消</el-button>
+                    <el-button type="primary" @click="addTableNameMethod">确定</el-button>
+                </div>
+            </el-dialog>
+
+            <el-dialog title="需求反馈" :visible="dialogRequestFormVisible" :close-on-click-modal="false" width="540px"
+                @close='closeDialog'>
+                <el-form ref="dataRequestForm" :rules="requestRules" :model="requestTemp" label-position="left"
+                    label-width="110px" class="dialog-style">
+                    <el-form-item label="栏目" prop="economy">
+                        <el-input placeholder="中国经济/价格指数" v-model="requestTemp.economy" />
+                    </el-form-item>
+                    <el-form-item label="需求描述" prop="details">
+                        <el-input type="textarea" placeholder="请填写需求描述" :rows="2" v-model="requestTemp.details" />
+                    </el-form-item>
+                    <el-form-item label="上传截图" prop="uploadIcon" class="upload-file">
+                        <el-upload style="float:left;" ref="upload" action="https://jsonplaceholder.typicode.com/posts/"
+                            list-type="picture-card" accept=".jpg,.jpeg,.png,.JPG,.JPEG,.PNG" :data="paramsData"
+                            :file-list="fileList" :class="{hide:hideUpload}" :limit='limitNum'
+                            :before-upload="beforeUploadImage" :on-success="handlePicSuccess"
+                            :on-preview="handlePictureCardPreview" :on-remove="handleRemove" :on-change="handleChange">
+                            <i class="el-icon-plus"></i>
+                        </el-upload>
+                        <!--<span class="pic-limit" v-if="!updateFlag">图片不超过10M</span>-->
+                    </el-form-item>
+                    <el-form-item label="联系人" prop="concatName">
+                        <el-input placeholder="请填写需求描述" v-model="requestTemp.concatName" />
+                    </el-form-item>
+                    <el-form-item label="联系方式" prop="concatMethod">
+                        <el-input placeholder="请填写需求描述" v-model="requestTemp.concatMethod" />
+                    </el-form-item>
+                </el-form>
+                <div slot="footer" class="dialog-footer">
+                    <el-button @click="closeDialog">取消</el-button>
+                    <el-button type="primary" @click="addTableNameMethod">确定</el-button>
+                </div>
+            </el-dialog>
+
+            <el-dialog :visible.sync="dialogImgVisible" title="预览图片" class="prev-view">
+                <img width="100%" :src="dialogImageUrl" alt="">
+            </el-dialog>
         </template>
     </div>
 
 
     <%= require('html-loader!../../template/foot.html') %>
-    <script src="../js/go.js"></script>
+    <script src="../../js/echarts.min.js"></script>
 
     <script>
         axios.defaults.headers['userKey'] = fetchStorage();
-        // 创建图
-        console.log(1)
+        var app = new Vue({
+            el: '#root',
+            data() {
+                return {
+                    pickerOptions1: {
+                        shortcuts: [{
+                            text: '最近一个季度',
+                            onClick(picker) {
+                                const end = new Date();
+                                const start = new Date();
+                                start.setTime(start.getTime() - 3600 * 1000 * 24 * 90);
+                                picker.$emit('pick', [start, end]);
+                            }
+                        }, {
+                            text: '最近半年',
+                            onClick(picker) {
+                                const end = new Date();
+                                const start = new Date();
+                                start.setTime(start.getTime() - 3600 * 1000 * 24 * 183);
+                                picker.$emit('pick', [start, end]);
+                            }
+                        }, {
+                            text: '最近一年',
+                            onClick(picker) {
+                                const end = new Date();
+                                const startYear = end.getFullYear() - 1;
+                                const nowMonth = end.getMonth() + 1;
+                                const nowDay = end.getDate();
+                                const start = new Date(startYear + "-" + nowMonth + "-" + nowDay);
+                                picker.$emit('pick', [start, end]);
+                            }
+                        }, {
+                            text: '最近三年',
+                            onClick(picker) {
+                                const end = new Date();
+                                const startYear = end.getFullYear() - 3;
+                                const nowMonth = end.getMonth() + 1;
+                                const nowDay = end.getDate();
+                                const start = new Date(startYear + "-" + nowMonth + "-" + nowDay);
+                                //start.setTime(start.getTime() - 3600 * 1000 * 24 * 366 * 3);
+                                picker.$emit('pick', [start, end]);
+                            }
+                        }, {
+                            text: '最近五年',
+                            onClick(picker) {
+                                const end = new Date();
+                                const startYear = end.getFullYear() - 5;
+                                const nowMonth = end.getMonth() + 1;
+                                const nowDay = end.getDate();
+                                const start = new Date(startYear + "-" + nowMonth + "-" + nowDay);
+                                picker.$emit('pick', [start, end]);
+                            }
+                        }]
+                    },
+                    ruleForm: {
+                        date: ''
+                    },
+                    tabsValue: '1',
+                    collectDatas: [],
+                    collectLoading: false,
+                    tableLoading: false,
+                    defaultData: [],
+                    defaultList: [{
+                            key: '1',
+                            label: 'CPI'
+                        },
+                        {
+                            key: '2',
+                            label: 'PPI'
+                        },
+                        {
+                            key: '3',
+                            label: '差值'
+                        },
+                    ],
+                    relatedData: [],
+                    relatedList: [{
+                            key: '1',
+                            label: 'CPI'
+                        },
+                        {
+                            key: '2',
+                            label: 'PPI'
+                        },
+                        {
+                            key: '3',
+                            label: '差值'
+                        },
+                    ],
+                    defalutNames: [],
+                    relatedNames: [],
+                    dialogFormVisible: false,
+                    dialogFileFormVisible: false,
+                    dialogChartFormVisible: false,
+                    dialogRequestFormVisible: false,
+                    temp: {
+                        fileName: '',
+                        tableName: ''
+                    },
+                    fileTemp: {
+                        fileName: ''
+                    },
+                    tableTemp: {
+                        tableName: ''
+                    },
+                    requestTemp: {
+                        economy: '',
+                        details: '',
+                        uploadIcon: [],
+                        concatName: '',
+                        concatMethod: '',
+                    },
+                    collectRules: {
+                        fileName: [{
+                            required: true,
+                            message: '请选择文件夹名称',
+                            trigger: 'change'
+                        }],
+                        tableName: [{
+                            required: true,
+                            message: '请选择报表名称',
+                            trigger: 'change'
+                        }],
+                    },
+                    fileRules: {
+                        fileName: [{
+                            required: true,
+                            message: '请填写文件夹名称',
+                            trigger: 'change'
+                        }],
+                    },
+                    tableRules: {
+                        tableName: [{
+                            required: true,
+                            message: '请填写报表名称',
+                            trigger: 'change'
+                        }],
+                    },
+                    requestRules: {
+                        details: [{
+                            required: true,
+                            message: '请填写需求描述',
+                            trigger: 'change'
+                        }],
+                        concatName: [{
+                            required: true,
+                            message: '请填写联系人',
+                            trigger: 'change'
+                        }],
+                        concatMethod: [{
+                            required: true,
+                            message: '请填写联系方式',
+                            trigger: 'change'
+                        }],
+                    },
+                    sortTemp: {
+
+                    },
+                    chartList: [{
+                            id: 1,
+                            name: '中国社会融资规模情况（日）',
+                            sort: 1
+                        },
+                        {
+                            id: 2,
+                            name: '中国社会融资规模情况（周）',
+                            sort: 2
+                        },
+                        {
+                            id: 3,
+                            name: '中国社会融资规模情况（月）',
+                            sort: 3
+                        },
+                        {
+                            id: 4,
+                            name: '中国社会融资规模情况（年）',
+                            sort: 4
+                        }
+                    ],
+                    exposantValue: [],
+                    exposanData: [{
+                        key: 1,
+                        label: "CPI/PPI"
+                    }],
+                    limitNum: 50,
+                    dialogImageUrl: '',
+                    dialogImgVisible: false,
+                    hideUpload: false,
+                    fileList: [],
+                    paramsData: {
+                        flag: 'pic'
+                    },
+                    updateFlag: false,
+
+                }
+            },
+            filters: {},
+            created: function () {},
+            mounted() {
+                var that = this;
+                for (var i = 0; i < that.chartList.length; i++) {
+                    that.sortTemp['sort' + i] = that.chartList[i].sort;
+                }
+                //console.log(that.sortTemp);
+                //this.$forceUpdate();
+                api.get("/api/macroeconomy/menuTree/getSelfAndAllChildNodesById", {
+                        nodeId: 1
+                    })
+                    .then(({
+                        data: {
+                            code,
+                            success,
+                            data
+                        }
+                    }) => {
+                        console.log(data)
+                    });
+                this.initChart();
+            },
+            watch: {},
+            methods: {
+                getdata(evt) {
+                    console.log(evt)
+                    //这里evt.draggedContext后续的内容根据具体的定义变量而定
+                },
+                showFileNameDialog() {
+                    this.dialogFileFormVisible = true;
+                    //this.dialogFormVisible=false;
+                    this.dialogChartFormVisible = false;
+                },
+                showChartNameDialog() {
+                    this.dialogChartFormVisible = true;
+                    //this.dialogFormVisible=false;
+                    this.dialogFileFormVisible = false;
+                },
+                datadragEnd(evt) {
+                    console.log(evt);
+                    console.log('拖动前的索引 :' + evt.oldIndex);
+                    console.log('拖动后的索引 :' + evt.newIndex);
+                    evt.preventDefault();
+                    var arr = this.chartList;
+                    console.log(arr);
+                    var newArr = arr.map((item, i) => {
+                        return {
+                            id: item.id,
+                            name: item.name,
+                            sort: i + 1
+                        };
+                    });
+                    this.chartList = newArr;
+                },
+                chooseDate(val) {
+                    console.log(val);
+                    console.log(this.tabsValue);
+                },
+                defaultChange(val) {
+                    var defalutNames = [];
+                    var defaultList = this.defaultList;
+                    if (defaultList.length > 0) {
+                        for (var i = 0; i < defaultList.length; i++) {
+                            var key = defaultList[i].key;
+                            if (val.indexOf(key) > -1) {
+                                defalutNames.push(defaultList[i].label);
+                            }
+                        }
+                    }
+                    this.defalutNames = defalutNames;
+                    console.log(defalutNames.join("/"));
+                },
+                relatedChange(val) {
+                    var relatedNames = [];
+                    var relatedList = this.relatedList;
+                    if (relatedList.length > 0) {
+                        for (var i = 0; i < relatedList.length; i++) {
+                            var key = relatedList[i].key;
+                            if (val.indexOf(key) > -1) {
+                                relatedNames.push(relatedList[i].label);
+                            }
+                        }
+                    }
+                    this.relatedNames = relatedNames;
+                },
+                initChart() {
+                    var that = this;
+                    var legendData = [];
+                    var seriesData = [];
+                    var datas = [];
+                    var data = [{
+                            "xdata": "2019-09-25",
+                            "ydata": "10679"
+                        },
+                        {
+                            "xdata": "2019-09-26",
+                            "ydata": "10181.50"
+                        },
+                        {
+                            "xdata": "2019-09-27",
+                            "ydata": "9438.33"
+                        },
+                        {
+                            "xdata": "2019-09-30",
+                            "ydata": "8902.50"
+                        },
+                        {
+                            "xdata": "2019-10-08",
+                            "ydata": "8583.40"
+                        },
+                        {
+                            "xdata": "2019-10-09",
+                            "ydata": "7897.60"
+                        },
+                        {
+                            "xdata": "2019-10-10",
+                            "ydata": "7489.40"
+                        },
+                        {
+                            "xdata": "2019-10-11",
+                            "ydata": "7364.40"
+                        },
+                        {
+                            "xdata": "2019-10-14",
+                            "ydata": "7382.80"
+                        },
+                        {
+                            "xdata": "2019-10-15",
+                            "ydata": "7398.40"
+                        },
+                        {
+                            "xdata": "2019-10-16",
+                            "ydata": "7354.60"
+                        },
+                        {
+                            "xdata": "2019-10-17",
+                            "ydata": "7312.60"
+                        },
+                        {
+                            "xdata": "2019-10-18",
+                            "ydata": "7464.00"
+                        },
+                        {
+                            "xdata": "2019-10-21",
+                            "ydata": "7747.80"
+                        },
+                        {
+                            "xdata": "2019-10-22",
+                            "ydata": "8089.60"
+                        },
+                        {
+                            "xdata": "2019-10-23",
+                            "ydata": "8414.00"
+                        },
+                        {
+                            "xdata": "2019-10-24",
+                            "ydata": "8627.40"
+                        },
+                        {
+                            "xdata": "2019-10-25",
+                            "ydata": "8723.00"
+                        },
+                        {
+                            "xdata": "2019-10-28",
+                            "ydata": "8602.00"
+                        },
+                        {
+                            "xdata": "2019-10-29",
+                            "ydata": "8373.80"
+                        },
+                        {
+                            "xdata": "2019-10-30",
+                            "ydata": "8217.00"
+                        },
+                        {
+                            "xdata": "2019-10-31",
+                            "ydata": "8115.40"
+                        },
+                        {
+                            "xdata": "2019-11-01",
+                            "ydata": "8026.00"
+                        },
+                        {
+                            "xdata": "2019-11-04",
+                            "ydata": "8002.40"
+                        },
+                        {
+                            "xdata": "2019-11-05",
+                            "ydata": "8042.20"
+                        },
+                        {
+                            "xdata": "2019-11-06",
+                            "ydata": "8064.80"
+                        },
+                        {
+                            "xdata": "2019-11-07",
+                            "ydata": "8002.20"
+                        },
+                        {
+                            "xdata": "2019-11-08",
+                            "ydata": "7883.60"
+                        },
+                        {
+                            "xdata": "2019-11-11",
+                            "ydata": "8201.80"
+                        },
+                        {
+                            "xdata": "2019-11-12",
+                            "ydata": "8541.80"
+                        },
+                        {
+                            "xdata": "2019-11-13",
+                            "ydata": "8983.60"
+                        },
+                        {
+                            "xdata": "2019-11-14",
+                            "ydata": "9421.40"
+                        },
+                        {
+                            "xdata": "2019-11-15",
+                            "ydata": "9871.80"
+                        },
+                        {
+                            "xdata": "2019-11-18",
+                            "ydata": "9952.80"
+                        },
+                        {
+                            "xdata": "2019-11-19",
+                            "ydata": "9874.40"
+                        },
+                        {
+                            "xdata": "2019-11-20",
+                            "ydata": "9625.20"
+                        },
+                        {
+                            "xdata": "2019-11-21",
+                            "ydata": "9332.00"
+                        },
+                        {
+                            "xdata": "2019-11-22",
+                            "ydata": "9055.80"
+                        },
+                        {
+                            "xdata": "2019-11-25",
+                            "ydata": "8726.20"
+                        },
+                        {
+                            "xdata": "2019-11-26",
+                            "ydata": "8371.80"
+                        },
+                        {
+                            "xdata": "2019-11-27",
+                            "ydata": "8165.80"
+                        },
+                        {
+                            "xdata": "2019-11-28",
+                            "ydata": "8201.60"
+                        },
+                        {
+                            "xdata": "2019-11-29",
+                            "ydata": "8358.80"
+                        },
+                        {
+                            "xdata": "2019-12-02",
+                            "ydata": "8563.20"
+                        },
+                        {
+                            "xdata": "2019-12-03",
+                            "ydata": "8837.40"
+                        },
+                        {
+                            "xdata": "2019-12-04",
+                            "ydata": "9260.40"
+                        },
+                        {
+                            "xdata": "2019-12-05",
+                            "ydata": "9650.60"
+                        },
+                        {
+                            "xdata": "2019-12-06",
+                            "ydata": "9904.60"
+                        },
+                        {
+                            "xdata": "2019-12-09",
+                            "ydata": "10021.20"
+                        },
+                        {
+                            "xdata": "2019-12-10",
+                            "ydata": "10219.60"
+                        },
+                        {
+                            "xdata": "2019-12-11",
+                            "ydata": "10115.20"
+                        },
+                        {
+                            "xdata": "2019-12-12",
+                            "ydata": "9990.40"
+                        },
+                        {
+                            "xdata": "2019-12-13",
+                            "ydata": "9824.40"
+                        },
+                        {
+                            "xdata": "2019-12-16",
+                            "ydata": "9599.80"
+                        },
+                        {
+                            "xdata": "2019-12-17",
+                            "ydata": "9422.00"
+                        },
+                        {
+                            "xdata": "2019-12-18",
+                            "ydata": "9302.20"
+                        },
+                        {
+                            "xdata": "2019-12-19",
+                            "ydata": "9069.80"
+                        },
+                        {
+                            "xdata": "2019-12-20",
+                            "ydata": "8866.40"
+                        },
+                        {
+                            "xdata": "2019-12-23",
+                            "ydata": "8747.00"
+                        },
+                        {
+                            "xdata": "2019-12-24",
+                            "ydata": "8468.20"
+                        },
+                        {
+                            "xdata": "2019-12-25",
+                            "ydata": "8188.00"
+                        },
+                        {
+                            "xdata": "2019-12-26",
+                            "ydata": "7894.40"
+                        },
+                        {
+                            "xdata": "2019-12-27",
+                            "ydata": "7547.40"
+                        },
+                        {
+                            "xdata": "2019-12-30",
+                            "ydata": "7611.40"
+                        },
+                        {
+                            "xdata": "2019-12-31",
+                            "ydata": "8751.00"
+                        },
+                        {
+                            "xdata": "2020-01-02",
+                            "ydata": "11032.00"
+                        },
+                        {
+                            "xdata": "2020-01-03",
+                            "ydata": "14544.80"
+                        },
+                        {
+                            "xdata": "2020-01-06",
+                            "ydata": "18549.40"
+                        },
+                        {
+                            "xdata": "2020-01-07",
+                            "ydata": "22371.40"
+                        },
+                        {
+                            "xdata": "2020-01-08",
+                            "ydata": "25423.20"
+                        },
+                        {
+                            "xdata": "2020-01-09",
+                            "ydata": "27924.60"
+                        },
+                        {
+                            "xdata": "2020-01-10",
+                            "ydata": "29738.40"
+                        },
+                        {
+                            "xdata": "2020-01-13",
+                            "ydata": "31421.80"
+                        },
+                        {
+                            "xdata": "2020-01-14",
+                            "ydata": "33190.00"
+                        },
+                        {
+                            "xdata": "2020-01-15",
+                            "ydata": "34973.40"
+                        },
+                        {
+                            "xdata": "2020-01-16",
+                            "ydata": "36420.80"
+                        },
+                        {
+                            "xdata": "2020-01-17",
+                            "ydata": "37764.80"
+                        },
+                        {
+                            "xdata": "2020-01-20",
+                            "ydata": "38978.40"
+                        },
+                        {
+                            "xdata": "2020-01-21",
+                            "ydata": "39746.40"
+                        },
+                        {
+                            "xdata": "2020-01-22",
+                            "ydata": "38282.60"
+                        },
+                        {
+                            "xdata": "2020-01-23",
+                            "ydata": "35823.80"
+                        },
+                        {
+                            "xdata": "2020-02-03",
+                            "ydata": "33072.20"
+                        },
+                        {
+                            "xdata": "2020-02-04",
+                            "ydata": "30275.80"
+                        },
+                        {
+                            "xdata": "2020-02-05",
+                            "ydata": "28306.20"
+                        },
+                        {
+                            "xdata": "2020-02-06",
+                            "ydata": "28510.60"
+                        },
+                        {
+                            "xdata": "2020-02-07",
+                            "ydata": "30636.60"
+                        },
+                        {
+                            "xdata": "2020-02-10",
+                            "ydata": "32810.80"
+                        },
+                        {
+                            "xdata": "2020-02-11",
+                            "ydata": "35223.60"
+                        },
+                        {
+                            "xdata": "2020-02-12",
+                            "ydata": "37350.60"
+                        },
+                        {
+                            "xdata": "2020-02-13",
+                            "ydata": "39521.40"
+                        },
+                        {
+                            "xdata": "2020-02-14",
+                            "ydata": "41051.20"
+                        },
+                        {
+                            "xdata": "2020-02-17",
+                            "ydata": "42731.60"
+                        },
+                        {
+                            "xdata": "2020-02-18",
+                            "ydata": "44386.40"
+                        },
+                        {
+                            "xdata": "2020-02-19",
+                            "ydata": "46704.00"
+                        },
+                        {
+                            "xdata": "2020-02-20",
+                            "ydata": "48981.80"
+                        },
+                        {
+                            "xdata": "2020-02-21",
+                            "ydata": "50817.60"
+                        },
+                        {
+                            "xdata": "2020-02-24",
+                            "ydata": "51961.80"
+                        },
+                        {
+                            "xdata": "2020-02-25",
+                            "ydata": "51614.00"
+                        },
+                        {
+                            "xdata": "2020-02-26",
+                            "ydata": "51403.00"
+                        },
+                        {
+                            "xdata": "2020-02-27",
+                            "ydata": "50997.20"
+                        },
+                        {
+                            "xdata": "2020-02-28",
+                            "ydata": "50994.40"
+                        },
+                        {
+                            "xdata": "2020-03-02",
+                            "ydata": "51542.40"
+                        },
+                        {
+                            "xdata": "2020-03-03",
+                            "ydata": "53465.00"
+                        },
+                        {
+                            "xdata": "2020-03-04",
+                            "ydata": "54578.40"
+                        },
+                        {
+                            "xdata": "2020-03-05",
+                            "ydata": "55968.80"
+                        },
+                        {
+                            "xdata": "2020-03-06",
+                            "ydata": "56903.80"
+                        },
+                        {
+                            "xdata": "2020-03-09",
+                            "ydata": "57221.80"
+                        },
+                        {
+                            "xdata": "2020-03-10",
+                            "ydata": "57174.20"
+                        },
+                        {
+                            "xdata": "2020-03-11",
+                            "ydata": "56988.00"
+                        },
+                        {
+                            "xdata": "2020-03-12",
+                            "ydata": "56571.80"
+                        },
+                        {
+                            "xdata": "2020-03-13",
+                            "ydata": "55840.80"
+                        },
+                        {
+                            "xdata": "2020-03-16",
+                            "ydata": "55514.80"
+                        },
+                        {
+                            "xdata": "2020-03-17",
+                            "ydata": "54852.20"
+                        },
+                        {
+                            "xdata": "2020-03-18",
+                            "ydata": "54244.20"
+                        },
+                        {
+                            "xdata": "2020-03-19",
+                            "ydata": "53315.20"
+                        },
+                        {
+                            "xdata": "2020-03-20",
+                            "ydata": "52693.00"
+                        },
+                        {
+                            "xdata": "2020-03-23",
+                            "ydata": "51976.20"
+                        },
+                        {
+                            "xdata": "2020-03-24",
+                            "ydata": "51355.60"
+                        },
+                        {
+                            "xdata": "2020-03-25",
+                            "ydata": "50046.60"
+                        },
+                        {
+                            "xdata": "2020-03-26",
+                            "ydata": "49383.80"
+                        },
+                        {
+                            "xdata": "2020-03-27",
+                            "ydata": "48765.20"
+                        },
+                        {
+                            "xdata": "2020-03-30",
+                            "ydata": "48181.80"
+                        },
+                        {
+                            "xdata": "2020-03-31",
+                            "ydata": "48035.20"
+                        },
+                        {
+                            "xdata": "2020-04-01",
+                            "ydata": "48260.60"
+                        },
+                        {
+                            "xdata": "2020-04-02",
+                            "ydata": "47804.80"
+                        },
+                        {
+                            "xdata": "2020-04-03",
+                            "ydata": "46972.20"
+                        },
+                        {
+                            "xdata": "2020-04-07",
+                            "ydata": "46427.40"
+                        },
+                        {
+                            "xdata": "2020-04-08",
+                            "ydata": "46142.80"
+                        }
+                    ];
+                    for (var i = 0; i < data.length; i++) {
+                        legendData.push(data[i].xdata);
+                        datas.push([data[i].xdata, data[i].ydata]);
+                    }
+                    seriesData.push({
+                        name: 'CPI',
+                        type: 'line',
+                        connectNulls: true,
+                        data: datas
+                    });
+                    var myChart = echarts.init(document.getElementById('chart'));
+                    var option = {
+                        title: {
+                            text: 'CPI',
+                            left: 'center',
+                        },
+                        tooltip: {
+                            show: true,
+                            trigger: 'axis',
+                        },
+                        legend: {
+                            data: legendData,
+                            top: '39',
+                        },
+                        grid: {
+                            left: '5%',
+                            right: '5%',
+                            bottom: '3%',
+                            containLabel: true
+                        },
+                        toolbox: {
+                            feature: {
+                                magicType: {
+                                    show: true,
+                                    type: ["line", "bar"]
+                                },
+                                restore: {
+                                    show: true
+                                },
+                                saveAsImage: {
+                                    show: true
+                                },
+                            }
+                        },
+                        xAxis: {
+                            type: 'time',
+                            splitLine: {
+                                show: false
+                            },
+                            scale: true,
+                        },
+                        yAxis: [{
+                            type: 'value'
+                        }],
+                        series: seriesData
+                    };
+
+                    myChart.setOption(option, true);
+                },
+                fetchTable() {
+                    this.collectDatas = [{
+                        title: 111
+                    }, {
+                        title: 222
+                    }, {
+                        title: 333
+                    }, {
+                        title: 444
+                    }];
+                },
+                closeDialog() {
+                    this.dialogFormVisible = false;
+                    this.dialogFileFormVisible = false;
+                    this.dialogChartFormVisible = false;
+                    this.dialogRequestFormVisible = false;
+                },
+                closeFileDialog() {
+                    this.dialogFormVisible = true;
+                    this.dialogFileFormVisible = false;
+                    this.dialogChartFormVisible = false;
+                },
+                addCollectChart() {
+                    this.$refs['dataForm'].validate((valid) => {
+                        if (valid) {
+
+                        }
+                    });
+                },
+                addFileNameMethod() {
+                    var that = this;
+                    that.$refs['dataFileForm'].validate((valid) => {
+                        if (valid) {
+                            that.dialogFormVisible = true;
+                            that.dialogFileFormVisible = false;
+                            that.dialogChartFormVisible = false;
+                        }
+                    });
+                },
+                addTableNameMethod() {
+                    var that = this;
+                    that.$refs['dataRequestForm'].validate((valid) => {
+                        if (valid) {
+                            that.dialogFormVisible = false;
+                            that.dialogFileFormVisible = false;
+                            that.dialogChartFormVisible = false;
+                            this.dialogRequestFormVisible = false;
+                        }
+                    });
+                },
+                beforeUploadImage: function (file) {
+                    var isJPG = file.type === 'image/jpeg' || file.type === 'image/jpg';
+                    var isPNG = file.type === 'image/png';
+                    var isPG = (isJPG || isPNG) //限制图片格式为jpg / png
+                    var isLt10M = file.size / 1024 / 1024 < 10; //限制图片大小
+                    if (!isPG) {
+                        this.$message.error('上传头像图片只能是 JPG 或 PNG 格式!');
+                    }
+                    if (!isLt10M) {
+                        this.$message.error('上传头像图片大小不能超过 10MB!');
+                    }
+                    return isPG && isLt10M
+                },
+                handlePicSuccess: function (response, file, fileList) {
+                    var msg = response.message
+                    var res = response.data
+                    if (res && res.code === "SUCCESS") {
+                        //this.userPic = res.filePath
+                        //this.temp.userIcon = res.filePath
+                        //this.modifyTemp.userIcon = res.filePath
+                    } else {
+                        this.$message({
+                            message: msg,
+                            type: 'warning'
+                        })
+                    }
+                },
+                handleRemove: function (file, fileList) {
+                    this.hideUpload = fileList.length >= this.limitNum;
+                    this.requestTemp.uploadIcon = '';
+                    //this.modifyTemp.userIcon = ''
+                },
+                handlePictureCardPreview: function (file) {
+                    this.dialogImageUrl = file.url;
+                    this.dialogImgVisible = true;
+                },
+                handleChange: function (file, fileList) {
+                    this.fileList = fileList;
+                    this.hideUpload = fileList.length >= this.limitNum;
+                },
+            }
+        })
     </script>
 </body>
 
